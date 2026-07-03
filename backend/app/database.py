@@ -22,6 +22,21 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_ensure_source_progress_columns)
+
+
+def _ensure_source_progress_columns(conn) -> None:
+    rows = conn.exec_driver_sql("PRAGMA table_info(sources)").fetchall()
+    existing_cols = {row[1] for row in rows}
+
+    if "ingestion_step" not in existing_cols:
+        conn.exec_driver_sql(
+            "ALTER TABLE sources ADD COLUMN ingestion_step VARCHAR DEFAULT 'queued'"
+        )
+    if "progress_percent" not in existing_cols:
+        conn.exec_driver_sql(
+            "ALTER TABLE sources ADD COLUMN progress_percent INTEGER DEFAULT 0"
+        )
 
 
 async def get_db() -> AsyncSession:

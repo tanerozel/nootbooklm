@@ -41,7 +41,7 @@ export default function SourcePanel({
       const source = await uploadFile(notebookId, file);
       onSourcesChange([...sources, source]);
     } catch (err) {
-      alert('Upload failed. Check file type (PDF, DOCX, TXT).');
+      alert('Upload failed. Check file type (PDF, DOCX, TXT, MD).');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -96,7 +96,7 @@ export default function SourcePanel({
         <input
           ref={fileRef}
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,.docx,.txt,.md,.markdown"
           className="hidden"
           onChange={handleFileUpload}
         />
@@ -130,7 +130,7 @@ export default function SourcePanel({
       <div className="flex-1 overflow-y-auto">
         {sources.length === 0 ? (
           <div className="text-center text-gray-400 text-sm py-8 px-4">
-            Upload a PDF, DOCX, TXT or add a URL to get started.
+            Upload a PDF, DOCX, TXT, MD or add a URL to get started.
           </div>
         ) : (
           <ul>
@@ -171,7 +171,18 @@ export default function SourcePanel({
                     {src.status === 'ready' && (
                       <span className="text-xs text-gray-400">{src.chunk_count} chunks</span>
                     )}
+                    {(src.status === 'pending' || src.status === 'processing') && (
+                      <span className="text-xs text-gray-400">{src.progress_percent}% · {src.ingestion_step}</span>
+                    )}
                   </div>
+                  {(src.status === 'pending' || src.status === 'processing') && (
+                    <div className="mt-1 h-1.5 rounded bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all"
+                        style={{ width: `${Math.max(0, Math.min(100, src.progress_percent))}%` }}
+                      />
+                    </div>
+                  )}
                   {src.error_message && (
                     <p className="text-xs text-red-500 mt-1 truncate">{src.error_message}</p>
                   )}

@@ -1,4 +1,4 @@
-"""Document loaders for PDF, DOCX, plain text, and web URLs."""
+"""Document loaders for PDF, DOCX, plain text/markdown, and web URLs."""
 from __future__ import annotations
 
 import io
@@ -86,7 +86,7 @@ def load_document(
         return load_pdf(file_path, title=title)
     if source_type == "docx":
         return load_docx(file_path, title=title)
-    if source_type in ("text", "txt"):
+    if source_type in ("text", "txt", "md", "markdown"):
         return load_text(file_path, title=title)
     if source_type == "url":
         return load_url(url, title=title)

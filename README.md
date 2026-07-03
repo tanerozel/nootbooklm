@@ -1,6 +1,6 @@
 # NootbookLM
 
-A **source-grounded research assistant** similar to Google NotebookLM, built on OpenSearch. Upload your documents (PDF, DOCX, TXT, web pages), ask questions, and get cited answers — every claim is linked back to the exact source chunk.
+A **source-grounded research assistant** similar to Google NotebookLM, built on OpenSearch. Upload your documents (PDF, DOCX, TXT/MD, web pages), ask questions, and get cited answers — every claim is linked back to the exact source chunk.
 
 ---
 
@@ -203,7 +203,7 @@ npm run dev
 | Phase | Status | Description |
 |---|---|---|
 | 0 — PoC | ✅ | End-to-end flow: upload → index → hybrid search → cited answer |
-| 1 — Ingestion | 🔜 | Async job queue, progress events, more format support |
+| 1 — Ingestion | 🚧 | Async ingestion is active; progress tracking + markdown support delivered, queue/events expansion in progress |
 | 2 — Hybrid & Rerank | 🔜 | Cross-encoder reranker, OpenSearch search pipelines |
 | 3 — Conversation | 🔜 | Multi-turn context window management |
 | 4 — Advanced UI | 🔜 | Source viewer, drag-and-drop, keyboard shortcuts |
