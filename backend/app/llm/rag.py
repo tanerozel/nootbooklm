@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from app.llm.client import get_llm
 from app.retrieval.embeddings import get_embedder
+from app.retrieval.rerank import rerank_chunks
 from app.retrieval.search import get_opensearch_client, hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ async def answer_question(
         query_embedding=query_embedding,
         top_k=top_k,
     )
+    chunks = rerank_chunks(query=question, chunks=chunks, top_k=top_k)
 
     if not chunks:
         return {

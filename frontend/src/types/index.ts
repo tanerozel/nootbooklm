@@ -63,6 +63,11 @@ export interface AppSettings {
   opensearch_user: string;
   opensearch_password: string;
   opensearch_index: string;
+  opensearch_use_search_pipeline: boolean;
+  opensearch_search_pipeline: string;
+  reranker_enabled: boolean;
+  reranker_model: string;
+  reranker_top_k: number;
   chunk_size: number;
   chunk_overlap: number;
 }

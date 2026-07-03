@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     opensearch_user: str = "admin"
     opensearch_password: str = "admin"
     opensearch_index: str = "nootbooklm_chunks"
+    opensearch_use_search_pipeline: bool = True
+    opensearch_search_pipeline: str = "nootbooklm_hybrid_pipeline"
+
+    # Retrieval / rerank
+    reranker_enabled: bool = False
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_top_k: int = 8
 
     # Backend
     secret_key: str = "change-me-in-production-at-least-32-chars"

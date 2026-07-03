@@ -87,7 +87,7 @@ async def get_chat_history(
     return list(result.scalars().all())
 
 
-@router.delete("/history", status_code=204)
+@router.delete("/history", status_code=204, response_model=None)
 async def clear_chat_history(
     notebook_id: str,
     db: AsyncSession = Depends(get_db),
