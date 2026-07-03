@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Protocol
 
-from app.config import get_settings
+from app.config import get_runtime_settings
 
 
 class Embedder(Protocol):
@@ -14,7 +14,7 @@ class Embedder(Protocol):
 
 @lru_cache(maxsize=1)
 def get_embedder() -> Embedder:
-    settings = get_settings()
+    settings = get_runtime_settings()
     provider = settings.embedding_provider
 
     if provider == "openai":
@@ -31,3 +31,7 @@ def get_embedder() -> Embedder:
         return HuggingFaceEmbeddings(model_name=settings.embedding_model)
 
     raise ValueError(f"Unknown embedding provider: {provider}")
+
+
+def clear_embedder_cache() -> None:
+    get_embedder.cache_clear()

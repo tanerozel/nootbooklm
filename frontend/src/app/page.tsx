@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Plus, Settings, Trash2 } from 'lucide-react';
 import { createNotebook, deleteNotebook, listNotebooks } from '@/lib/api';
 import type { Notebook } from '@/types';
 
@@ -44,9 +44,19 @@ export default function HomePage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12">
-      <div className="flex items-center gap-3 mb-8">
-        <BookOpen className="w-8 h-8 text-blue-600" />
-        <h1 className="text-3xl font-bold">NootbookLM</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold">NootbookLM</h1>
+        </div>
+        <button
+          onClick={() => router.push('/settings')}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition"
+          aria-label="Settings"
+        >
+          <Settings className="w-5 h-5" />
+          <span className="text-sm">Settings</span>
+        </button>
       </div>
 
       <form onSubmit={handleCreate} className="flex gap-2 mb-8">

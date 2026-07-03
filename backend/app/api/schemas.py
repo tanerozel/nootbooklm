@@ -91,3 +91,48 @@ class NoteOut(BaseModel):
     notebook_id: str
     content: str
     updated_at: datetime
+
+
+# ── Settings ──────────────────────────────────────────────────────────────────
+
+class SettingsOut(BaseModel):
+    # LLM
+    llm_provider: str
+    openai_api_key: str
+    anthropic_api_key: str
+    llm_model: str
+    # Embedding
+    embedding_provider: str
+    embedding_model: str
+    embedding_dimension: int
+    # OpenSearch (mutable fields only)
+    opensearch_user: str
+    opensearch_password: str
+    opensearch_index: str
+    # Chunking
+    chunk_size: int
+    chunk_overlap: int
+
+
+class SettingsPatch(BaseModel):
+    # LLM
+    llm_provider: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    anthropic_api_key: Optional[str] = None
+    llm_model: Optional[str] = None
+    # Embedding
+    embedding_provider: Optional[str] = None
+    embedding_model: Optional[str] = None
+    embedding_dimension: Optional[int] = None
+    # OpenSearch
+    opensearch_user: Optional[str] = None
+    opensearch_password: Optional[str] = None
+    opensearch_index: Optional[str] = None
+    # Chunking
+    chunk_size: Optional[int] = None
+    chunk_overlap: Optional[int] = None
+
+
+class SettingsPatchResponse(BaseModel):
+    settings: SettingsOut
+    warnings: list[str]

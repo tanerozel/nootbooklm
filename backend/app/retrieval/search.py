@@ -7,7 +7,7 @@ from typing import Any
 
 from opensearchpy import OpenSearch, helpers
 
-from app.config import get_settings
+from app.config import get_runtime_settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ _INDEX_MAPPING = {
 
 @lru_cache(maxsize=1)
 def get_opensearch_client() -> OpenSearch:
-    s = get_settings()
+    s = get_runtime_settings()
     return OpenSearch(
         hosts=[{"host": s.opensearch_host, "port": s.opensearch_port}],
         http_auth=(s.opensearch_user, s.opensearch_password),
@@ -48,8 +48,12 @@ def get_opensearch_client() -> OpenSearch:
     )
 
 
+def clear_opensearch_cache() -> None:
+    get_opensearch_client.cache_clear()
+
+
 def ensure_index(client: OpenSearch) -> None:
-    s = get_settings()
+    s = get_runtime_settings()
     index = s.opensearch_index
     if client.indices.exists(index=index):
         return
@@ -68,7 +72,7 @@ def ensure_index(client: OpenSearch) -> None:
 
 
 def bulk_index_chunks(client: OpenSearch, chunks: list[dict]) -> None:
-    s = get_settings()
+    s = get_runtime_settings()
     actions = [
         {
             "_index": s.opensearch_index,
@@ -84,7 +88,7 @@ def bulk_index_chunks(client: OpenSearch, chunks: list[dict]) -> None:
 
 
 def delete_source_chunks(client: OpenSearch, source_id: str) -> None:
-    s = get_settings()
+    s = get_runtime_settings()
     client.delete_by_query(
         index=s.opensearch_index,
         body={"query": {"term": {"source_id": source_id}}},
@@ -105,7 +109,7 @@ def hybrid_search(
     OpenSearch hybrid query pipelines require a search pipeline configuration.
     We implement a client-side merge as a portable fallback.
     """
-    s = get_settings()
+    s = get_runtime_settings()
     index = s.opensearch_index
     filter_clause = {"term": {"notebook_id": notebook_id}}
 

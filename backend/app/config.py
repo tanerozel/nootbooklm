@@ -1,10 +1,27 @@
 from __future__ import annotations
 
-import os
+import base64
+import hashlib
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
+from cryptography.fernet import Fernet
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Keys stored encrypted in the DB.
+SENSITIVE_KEYS: frozenset[str] = frozenset(
+    {"openai_api_key", "anthropic_api_key", "opensearch_password"}
+)
+
+# Keys that must never be overridden via the UI (stay ENV-only).
+ENV_ONLY_KEYS: frozenset[str] = frozenset(
+    {"secret_key", "backend_cors_origins", "opensearch_host", "opensearch_port", "upload_dir"}
+)
+
+# Keys that affect embeddings — a change requires re-indexing sources.
+EMBEDDING_AFFECTING_KEYS: frozenset[str] = frozenset(
+    {"embedding_provider", "embedding_model", "embedding_dimension"}
+)
 
 
 class Settings(BaseSettings):
@@ -47,3 +64,59 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+# ── Runtime settings (ENV + DB overrides) ────────────────────────────────────
+
+# Module-level mutable override store loaded from DB on startup.
+_overrides: dict[str, str] = {}
+
+
+def load_db_overrides(overrides: dict[str, str]) -> None:
+    """Replace the in-memory override cache (called on startup and after PATCH)."""
+    global _overrides
+    _overrides = dict(overrides)
+
+
+def get_runtime_settings() -> Settings:
+    """Return effective settings: DB overrides take priority over ENV."""
+    if not _overrides:
+        return get_settings()
+    base = get_settings().model_dump()
+    base.update(_overrides)
+    return Settings.model_validate(base)
+
+
+# ── Encryption helpers ────────────────────────────────────────────────────────
+
+def _fernet() -> Fernet:
+    raw_key = get_settings().secret_key.encode()
+    derived = base64.urlsafe_b64encode(hashlib.sha256(raw_key).digest())
+    return Fernet(derived)
+
+
+def encrypt_value(plaintext: str) -> str:
+    return _fernet().encrypt(plaintext.encode()).decode()
+
+
+def decrypt_value(token: str) -> str:
+    return _fernet().decrypt(token.encode()).decode()
+
+
+def mask_sensitive(value: str) -> str:
+    """Show first 4 and last 4 characters; mask the middle with ****."""
+    if len(value) <= 8:
+        return "****"
+    return value[:4] + "****" + value[-4:]
+
+
+def settings_to_display(s: Settings) -> dict[str, Any]:
+    """Return settings dict with sensitive fields masked."""
+    d = s.model_dump()
+    for key in SENSITIVE_KEYS:
+        if d.get(key):
+            d[key] = mask_sensitive(d[key])
+    # Strip ENV-only keys not exposed via API
+    for key in ("secret_key", "backend_cors_origins", "upload_dir"):
+        d.pop(key, None)
+    return d
