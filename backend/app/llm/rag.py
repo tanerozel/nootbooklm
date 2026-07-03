@@ -1,12 +1,13 @@
 """RAG pipeline: retrieve → build prompt → generate cited answer."""
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
+import tiktoken
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
+from app.config import get_runtime_settings
 from app.llm.client import get_llm
 from app.retrieval.embeddings import get_embedder
 from app.retrieval.rerank import rerank_chunks
@@ -27,6 +28,46 @@ Sources will be provided in the following format:
 [source_id::chunk_index] (page N) Title: "..." 
 Text: ...
 """
+
+
+def _get_encoder(model: str) -> tiktoken.Encoding:
+    """Return a tiktoken encoder for *model*, falling back to cl100k_base."""
+    try:
+        return tiktoken.encoding_for_model(model)
+    except KeyError:
+        return tiktoken.get_encoding("cl100k_base")
+
+
+def _count_tokens(text: str, encoder: tiktoken.Encoding) -> int:
+    return len(encoder.encode(text))
+
+
+def _trim_history(
+    history: list[dict],
+    budget: int,
+    encoder: tiktoken.Encoding,
+) -> list[dict]:
+    """Return the most-recent subset of *history* that fits within *budget* tokens.
+
+    Messages are considered newest-first so that we always preserve the latest
+    turns and discard the oldest ones when the budget is exceeded.  We keep
+    whole turns (user + assistant pairs) where possible.
+    """
+    if not history or budget <= 0:
+        return []
+
+    total = 0
+    kept: list[dict] = []
+    for msg in reversed(history):
+        tokens = _count_tokens(msg["content"], encoder)
+        if total + tokens > budget and kept:
+            # Already have some history; stop adding more to avoid overflow.
+            break
+        total += tokens
+        kept.append(msg)
+
+    kept.reverse()
+    return kept
 
 
 def _format_context(chunks: list[dict[str, Any]]) -> str:
@@ -86,16 +127,37 @@ async def answer_question(
 
     context = _format_context(chunks)
 
+    settings = get_runtime_settings()
+    encoder = _get_encoder(settings.llm_model)
+
+    # Reserve tokens for system prompt and current user message, then trim history.
+    system_tokens = _count_tokens(SYSTEM_PROMPT, encoder)
+    user_msg_text = f"SOURCES:\n{context}\n\nQUESTION: {question}"
+    user_tokens = _count_tokens(user_msg_text, encoder)
+    fixed_tokens = system_tokens + user_tokens
+    history_budget = min(
+        settings.max_history_tokens,
+        max(0, settings.max_context_tokens - fixed_tokens),
+    )
+
+    trimmed_history = _trim_history(chat_history, history_budget, encoder)
+    logger.debug(
+        "Context window: fixed=%d history_budget=%d history_msgs=%d/%d",
+        fixed_tokens,
+        history_budget,
+        len(trimmed_history),
+        len(chat_history),
+    )
+
     # Build message history
     messages = [SystemMessage(content=SYSTEM_PROMPT)]
-    for msg in chat_history[-6:]:  # last 3 turns (user+assistant)
+    for msg in trimmed_history:
         if msg["role"] == "user":
             messages.append(HumanMessage(content=msg["content"]))
         else:
             messages.append(AIMessage(content=msg["content"]))
 
-    user_message = f"SOURCES:\n{context}\n\nQUESTION: {question}"
-    messages.append(HumanMessage(content=user_message))
+    messages.append(HumanMessage(content=user_msg_text))
 
     llm = get_llm()
     response = llm.invoke(messages)

@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     chunk_size: int = 400
     chunk_overlap: int = 50
 
+    # Context window management
+    max_context_tokens: int = 8192   # total token budget sent to the LLM
+    max_history_tokens: int = 2000   # tokens reserved for chat history
+
     # Storage
     upload_dir: str = "/app/uploads"
 
