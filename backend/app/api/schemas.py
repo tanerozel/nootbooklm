@@ -40,6 +40,8 @@ class SourceOut(BaseModel):
     source_type: str
     url: Optional[str]
     status: str
+    ingestion_step: str
+    progress_percent: int
     error_message: Optional[str]
     chunk_count: int
     created_at: datetime

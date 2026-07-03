@@ -13,6 +13,8 @@ export interface Source {
   source_type: string;
   url: string | null;
   status: 'pending' | 'processing' | 'ready' | 'error';
+  ingestion_step: string;
+  progress_percent: number;
   error_message: string | null;
   chunk_count: number;
   created_at: string;

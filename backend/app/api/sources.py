@@ -4,6 +4,7 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import os
+import sqlite3
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -52,7 +53,21 @@ def _sync_ingest(source_id: str) -> None:
             if not source:
                 return
             source.status = "processing"
+            source.ingestion_step = "starting"
+            source.progress_percent = 5
             await session.commit()
+
+            def _persist_progress(step: str, progress: int) -> None:
+                with sqlite3.connect(DB_PATH) as conn:
+                    conn.execute(
+                        """
+                        UPDATE sources
+                        SET ingestion_step = ?, progress_percent = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                        (step, progress, source_id),
+                    )
+                    conn.commit()
 
             try:
                 chunk_count = ingest_source(
@@ -62,12 +77,16 @@ def _sync_ingest(source_id: str) -> None:
                     file_path=source.file_path,
                     url=source.url,
                     title=source.title,
+                    progress_callback=_persist_progress,
                 )
                 source.status = "ready"
+                source.ingestion_step = "completed"
+                source.progress_percent = 100
                 source.chunk_count = chunk_count
             except Exception as exc:
                 logger.exception("Ingestion failed for source %s", source_id)
                 source.status = "error"
+                source.ingestion_step = "failed"
                 source.error_message = str(exc)
 
             await session.commit()
@@ -108,11 +127,11 @@ async def upload_source(
 
     if file:
         suffix = Path(file.filename).suffix.lower().lstrip(".")
-        if suffix not in ("pdf", "docx", "txt", "text"):
+        if suffix not in ("pdf", "docx", "txt", "text", "md", "markdown"):
             raise HTTPException(
                 status_code=400, detail=f"Unsupported file type: .{suffix}"
             )
-        source_type = "text" if suffix in ("txt", "text") else suffix
+        source_type = "text" if suffix in ("txt", "text", "md", "markdown") else suffix
 
         upload_path = Path(settings.upload_dir) / notebook_id / source_id
         upload_path.mkdir(parents=True, exist_ok=True)
@@ -130,6 +149,8 @@ async def upload_source(
             source_type=source_type,
             file_path=file_path,
             status="pending",
+            ingestion_step="queued",
+            progress_percent=0,
         )
     else:
         source = Source(
@@ -139,6 +160,8 @@ async def upload_source(
             source_type="url",
             url=url,
             status="pending",
+            ingestion_step="queued",
+            progress_percent=0,
         )
 
     db.add(source)

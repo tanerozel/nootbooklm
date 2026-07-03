@@ -54,6 +54,8 @@ class Source(Base):
     file_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="pending")  # pending|processing|ready|error
+    ingestion_step: Mapped[str] = mapped_column(String, default="queued")
+    progress_percent: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
