@@ -75,6 +75,11 @@ Wait ~60 s for OpenSearch to become healthy, then open:
 | `OPENSEARCH_USER` | `admin` | OpenSearch user |
 | `OPENSEARCH_PASSWORD` | `admin` | OpenSearch password |
 | `OPENSEARCH_INDEX` | `nootbooklm_chunks` | Index name |
+| `OPENSEARCH_USE_SEARCH_PIPELINE` | `true` | Enable OpenSearch hybrid query + search pipeline |
+| `OPENSEARCH_SEARCH_PIPELINE` | `nootbooklm_hybrid_pipeline` | Search pipeline name for hybrid normalization |
+| `RERANKER_ENABLED` | `false` | Enable cross-encoder reranker |
+| `RERANKER_MODEL` | `cross-encoder/ms-marco-MiniLM-L-6-v2` | SentenceTransformers cross-encoder model |
+| `RERANKER_TOP_K` | `8` | Number of retrieved chunks to rerank |
 | `CHUNK_SIZE` | `400` | Target chunk size in characters |
 | `CHUNK_OVERLAP` | `50` | Chunk overlap in characters |
 | `SECRET_KEY` | — | Backend JWT secret (change in production) |
@@ -204,7 +209,7 @@ npm run dev
 |---|---|---|
 | 0 — PoC | ✅ | End-to-end flow: upload → index → hybrid search → cited answer |
 | 1 — Ingestion | 🚧 | Async ingestion is active; progress tracking + markdown support delivered, queue/events expansion in progress |
-| 2 — Hybrid & Rerank | 🔜 | Cross-encoder reranker, OpenSearch search pipelines |
+| 2 — Hybrid & Rerank | ✅ | Cross-encoder reranker, OpenSearch search pipelines |
 | 3 — Conversation | 🔜 | Multi-turn context window management |
 | 4 — Advanced UI | 🔜 | Source viewer, drag-and-drop, keyboard shortcuts |
 | 5 — Advanced features | 🔜 | Auto-summary, audio briefing, multi-user sharing |

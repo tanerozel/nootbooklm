@@ -104,11 +104,111 @@ def hybrid_search(
     bm25_weight: float = 0.3,
     knn_weight: float = 0.7,
 ) -> list[dict[str, Any]]:
-    """Hybrid search: combine BM25 + kNN scores via linear interpolation.
+    """Hybrid search: OpenSearch search pipeline, with client-side fallback.
 
-    OpenSearch hybrid query pipelines require a search pipeline configuration.
-    We implement a client-side merge as a portable fallback.
+    Uses OpenSearch hybrid+pipeline when enabled; falls back to client merge.
     """
+    s = get_runtime_settings()
+    if s.opensearch_use_search_pipeline:
+        try:
+            return _hybrid_search_with_pipeline(
+                client=client,
+                notebook_id=notebook_id,
+                query_text=query_text,
+                query_embedding=query_embedding,
+                top_k=top_k,
+                bm25_weight=bm25_weight,
+                knn_weight=knn_weight,
+                pipeline_name=s.opensearch_search_pipeline,
+            )
+        except Exception:
+            logger.exception(
+                "Search pipeline hybrid query failed; falling back to client merge"
+            )
+
+    return _hybrid_search_fallback(
+        client=client,
+        notebook_id=notebook_id,
+        query_text=query_text,
+        query_embedding=query_embedding,
+        top_k=top_k,
+        bm25_weight=bm25_weight,
+        knn_weight=knn_weight,
+    )
+
+
+def _hybrid_search_with_pipeline(
+    client: OpenSearch,
+    notebook_id: str,
+    query_text: str,
+    query_embedding: list[float],
+    top_k: int,
+    bm25_weight: float,
+    knn_weight: float,
+    pipeline_name: str,
+) -> list[dict[str, Any]]:
+    s = get_runtime_settings()
+    index = s.opensearch_index
+    _ensure_search_pipeline(client, pipeline_name, bm25_weight, knn_weight)
+
+    hybrid_query = {
+        "size": top_k,
+        "query": {
+            "hybrid": {
+                "queries": [
+                    {"match": {"text": {"query": query_text}}},
+                    {"knn": {"embedding": {"vector": query_embedding, "k": top_k * 2}}},
+                ]
+            }
+        },
+        "post_filter": {"term": {"notebook_id": notebook_id}},
+    }
+    resp = client.search(
+        index=index,
+        body=hybrid_query,
+        params={"search_pipeline": pipeline_name},
+    )
+    hits = resp["hits"]["hits"]
+    return [{**h["_source"], "_score": h.get("_score", 0.0), "_id": h["_id"]} for h in hits]
+
+
+def _ensure_search_pipeline(
+    client: OpenSearch,
+    pipeline_name: str,
+    bm25_weight: float,
+    knn_weight: float,
+) -> None:
+    # Idempotent upsert to keep weights in sync with runtime config.
+    body = {
+        "description": "Hybrid retrieval pipeline with score normalization",
+        "phase_results_processors": [
+            {
+                "normalization-processor": {
+                    "normalization": {"technique": "min_max"},
+                    "combination": {
+                        "technique": "arithmetic_mean",
+                        "parameters": {"weights": [bm25_weight, knn_weight]},
+                    },
+                }
+            }
+        ],
+    }
+    client.transport.perform_request(
+        method="PUT",
+        url=f"/_search/pipeline/{pipeline_name}",
+        body=body,
+    )
+
+
+def _hybrid_search_fallback(
+    client: OpenSearch,
+    notebook_id: str,
+    query_text: str,
+    query_embedding: list[float],
+    top_k: int,
+    bm25_weight: float,
+    knn_weight: float,
+) -> list[dict[str, Any]]:
     s = get_runtime_settings()
     index = s.opensearch_index
     filter_clause = {"term": {"notebook_id": notebook_id}}

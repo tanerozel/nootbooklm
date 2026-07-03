@@ -111,6 +111,12 @@ class SettingsOut(BaseModel):
     opensearch_user: str
     opensearch_password: str
     opensearch_index: str
+    opensearch_use_search_pipeline: bool
+    opensearch_search_pipeline: str
+    # Rerank
+    reranker_enabled: bool
+    reranker_model: str
+    reranker_top_k: int
     # Chunking
     chunk_size: int
     chunk_overlap: int
@@ -130,6 +136,12 @@ class SettingsPatch(BaseModel):
     opensearch_user: Optional[str] = None
     opensearch_password: Optional[str] = None
     opensearch_index: Optional[str] = None
+    opensearch_use_search_pipeline: Optional[bool] = None
+    opensearch_search_pipeline: Optional[str] = None
+    # Rerank
+    reranker_enabled: Optional[bool] = None
+    reranker_model: Optional[str] = None
+    reranker_top_k: Optional[int] = None
     # Chunking
     chunk_size: Optional[int] = None
     chunk_overlap: Optional[int] = None

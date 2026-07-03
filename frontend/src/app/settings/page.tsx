@@ -18,7 +18,7 @@ const EMBEDDING_AFFECTING: (keyof AppSettings)[] = [
 interface FieldConfig {
   key: keyof AppSettings;
   label: string;
-  type: 'text' | 'password' | 'number' | 'select';
+  type: 'text' | 'password' | 'number' | 'select' | 'boolean';
   options?: string[];
   group: string;
 }
@@ -40,6 +40,12 @@ const FIELD_CONFIG: FieldConfig[] = [
   { key: 'opensearch_user', label: 'OpenSearch User', type: 'text', group: 'OpenSearch' },
   { key: 'opensearch_password', label: 'OpenSearch Password', type: 'password', group: 'OpenSearch' },
   { key: 'opensearch_index', label: 'OpenSearch Index', type: 'text', group: 'OpenSearch' },
+  { key: 'opensearch_use_search_pipeline', label: 'Use Search Pipeline', type: 'boolean', group: 'OpenSearch' },
+  { key: 'opensearch_search_pipeline', label: 'Search Pipeline Name', type: 'text', group: 'OpenSearch' },
+  // Reranker
+  { key: 'reranker_enabled', label: 'Enable Reranker', type: 'boolean', group: 'Reranker' },
+  { key: 'reranker_model', label: 'Reranker Model', type: 'text', group: 'Reranker' },
+  { key: 'reranker_top_k', label: 'Rerank Candidate Count', type: 'number', group: 'Reranker' },
 ];
 
 export default function SettingsPage() {
@@ -62,7 +68,7 @@ export default function SettingsPage() {
       .catch(() => setError('Failed to load settings.'));
   }, []);
 
-  const handleChange = (key: keyof AppSettings, value: string | number) => {
+  const handleChange = (key: keyof AppSettings, value: string | number | boolean) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
     setEditMode((prev) => new Set(prev).add(key));
   };
@@ -85,7 +91,7 @@ export default function SettingsPage() {
 
     // Only send changed fields; skip sensitive fields that still show masked value (contain ****)
     const payload: Partial<AppSettings> = {};
-    for (const key of editMode) {
+    for (const key of Array.from(editMode) as (keyof AppSettings)[]) {
       const val = draft[key];
       if (val === undefined) continue;
       const strVal = String(val);
@@ -115,7 +121,7 @@ export default function SettingsPage() {
 
   const embeddingWillChange = EMBEDDING_AFFECTING.some((k) => editMode.has(k));
 
-  const groups = [...new Set(FIELD_CONFIG.map((f) => f.group))];
+  const groups = Array.from(new Set(FIELD_CONFIG.map((f) => f.group)));
 
   if (!settings) {
     return (
@@ -205,6 +211,16 @@ export default function SettingsPage() {
                           onChange={(e) => handleChange(field.key, Number(e.target.value))}
                           className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                      ) : field.type === 'boolean' ? (
+                        <label className="inline-flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(value)}
+                            onChange={(e) => handleChange(field.key, e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span>{Boolean(value) ? 'Enabled' : 'Disabled'}</span>
+                        </label>
                       ) : (
                         <input
                           type={isSensitive && !isVisible ? 'password' : 'text'}

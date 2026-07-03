@@ -20,6 +20,7 @@ from app.database import get_db
 from app.llm.client import clear_llm_cache
 from app.models import AppSetting
 from app.retrieval.embeddings import clear_embedder_cache
+from app.retrieval.rerank import clear_reranker_cache
 from app.retrieval.search import clear_opensearch_cache
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -87,7 +88,17 @@ async def patch_settings(
     # Clear dependent caches so next call picks up new settings
     clear_llm_cache()
     clear_embedder_cache()
-    if any(k in {"opensearch_user", "opensearch_password", "opensearch_index"} for k in patch_dict):
+    clear_reranker_cache()
+    if any(
+        k in {
+            "opensearch_user",
+            "opensearch_password",
+            "opensearch_index",
+            "opensearch_use_search_pipeline",
+            "opensearch_search_pipeline",
+        }
+        for k in patch_dict
+    ):
         clear_opensearch_cache()
 
     s = get_runtime_settings()
