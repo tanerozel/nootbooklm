@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Notebook, Source, ChatMessage, ChatResponse, Note } from '@/types';
+import type { Notebook, Source, ChatMessage, ChatResponse, Note, AppSettings, SettingsPatchResponse } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -62,3 +62,11 @@ export const getNote = (notebookId: string) =>
 
 export const updateNote = (notebookId: string, content: string) =>
   api.put<Note>(`/notebooks/${notebookId}/notes`, { content }).then((r) => r.data);
+
+// ── Settings ───────────────────────────────────────────────────────────────
+
+export const getSettings = () =>
+  api.get<AppSettings>('/settings').then((r) => r.data);
+
+export const patchSettings = (data: Partial<AppSettings>) =>
+  api.patch<SettingsPatchResponse>('/settings', data).then((r) => r.data);

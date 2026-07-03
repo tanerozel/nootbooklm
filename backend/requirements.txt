@@ -35,6 +35,7 @@ sentence-transformers==3.0.1
 # Auth helpers
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+cryptography==42.0.8
 
 # Utilities
 tiktoken==0.7.0

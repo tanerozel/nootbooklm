@@ -49,3 +49,23 @@ export interface Note {
   content: string;
   updated_at: string;
 }
+
+export interface AppSettings {
+  llm_provider: string;
+  openai_api_key: string;
+  anthropic_api_key: string;
+  llm_model: string;
+  embedding_provider: string;
+  embedding_model: string;
+  embedding_dimension: number;
+  opensearch_user: string;
+  opensearch_password: string;
+  opensearch_index: string;
+  chunk_size: number;
+  chunk_overlap: number;
+}
+
+export interface SettingsPatchResponse {
+  settings: AppSettings;
+  warnings: string[];
+}

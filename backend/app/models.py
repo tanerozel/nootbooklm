@@ -92,3 +92,13 @@ class Note(Base):
     )
 
     notebook: Mapped["Notebook"] = relationship("Notebook", back_populates="notes")
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )
