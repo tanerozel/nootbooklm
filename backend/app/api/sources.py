@@ -116,7 +116,9 @@ async def upload_source(
 
         upload_path = Path(settings.upload_dir) / notebook_id / source_id
         upload_path.mkdir(parents=True, exist_ok=True)
-        file_path = str(upload_path / file.filename)
+        # Use only the basename to prevent path traversal attacks
+        safe_filename = Path(file.filename).name
+        file_path = str(upload_path / safe_filename)
         with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)
@@ -124,7 +126,7 @@ async def upload_source(
         source = Source(
             id=source_id,
             notebook_id=notebook_id,
-            title=title or Path(file.filename).stem,
+            title=title or Path(safe_filename).stem,
             source_type=source_type,
             file_path=file_path,
             status="pending",
