@@ -14,6 +14,12 @@ interface Props {
   selectedSourceId: string | null;
 }
 
+interface Notice {
+  id: string;
+  message: string;
+  tone: 'error' | 'warning';
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   processing: 'bg-blue-100 text-blue-700',
@@ -34,8 +40,17 @@ export default function SourcePanel({
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
 
   const isUploading = uploadingIds.size > 0 || uploadQueue.length > 0;
+
+  const addNotice = (message: string, tone: Notice['tone']) => {
+    setNotices((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, message, tone }]);
+  };
+
+  const dismissNotice = (id: string) => {
+    setNotices((prev) => prev.filter((notice) => notice.id !== id));
+  };
 
   const uploadFilesSequentially = async (files: File[]) => {
     if (files.length === 0) return;
@@ -53,8 +68,7 @@ export default function SourcePanel({
         newSources.push(source);
         onSourcesChange([...sources, ...newSources]);
       } catch {
-        // Show an alert but continue with the remaining files
-        alert(`Upload failed for "${file.name}". Check file type (PDF, DOCX, TXT, MD).`);
+        addNotice(`Upload failed for "${file.name}". Check file type (PDF, DOCX, TXT, MD).`, 'warning');
       } finally {
         setUploadingIds((prev) => {
           const next = new Set(prev);
@@ -82,7 +96,7 @@ export default function SourcePanel({
       setUrlInput('');
       setShowUrlInput(false);
     } catch {
-      alert('Failed to add URL.');
+      addNotice('Failed to add URL.', 'error');
     } finally {
       setUploadingIds((prev) => {
         const next = new Set(prev);
@@ -105,7 +119,7 @@ export default function SourcePanel({
       const updated = await retrySource(notebookId, sourceId);
       onSourcesChange(sources.map((s) => (s.id === sourceId ? updated : s)));
     } catch {
-      alert('Failed to retry source ingestion.');
+      addNotice('Failed to retry source ingestion.', 'error');
     }
   };
 
@@ -148,6 +162,33 @@ export default function SourcePanel({
           onChange={handleFileUpload}
         />
       </div>
+
+      {notices.length > 0 && (
+        <div className="border-b border-gray-100 px-3 py-2 space-y-2">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              className={clsx(
+                'flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm',
+                notice.tone === 'warning'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              )}
+              role="alert"
+            >
+              <span>{notice.message}</span>
+              <button
+                type="button"
+                onClick={() => dismissNotice(notice.id)}
+                className="mt-0.5 text-current/60 hover:text-current"
+                aria-label="Dismiss notice"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showUrlInput && (
         <form onSubmit={handleUrlAdd} className="px-3 py-2 border-b border-gray-100 flex gap-2">
