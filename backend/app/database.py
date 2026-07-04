@@ -23,6 +23,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_ensure_source_progress_columns)
+        await conn.run_sync(_ensure_notebook_feature_columns)
 
 
 def _ensure_source_progress_columns(conn) -> None:
@@ -37,6 +38,24 @@ def _ensure_source_progress_columns(conn) -> None:
         conn.exec_driver_sql(
             "ALTER TABLE sources ADD COLUMN progress_percent INTEGER DEFAULT 0"
         )
+
+
+def _ensure_notebook_feature_columns(conn) -> None:
+    rows = conn.exec_driver_sql("PRAGMA table_info(notebooks)").fetchall()
+    existing_cols = {row[1] for row in rows}
+
+    if "summary" not in existing_cols:
+        conn.exec_driver_sql("ALTER TABLE notebooks ADD COLUMN summary TEXT")
+    if "summary_updated_at" not in existing_cols:
+        conn.exec_driver_sql(
+            "ALTER TABLE notebooks ADD COLUMN summary_updated_at DATETIME"
+        )
+    if "share_token" not in existing_cols:
+        conn.exec_driver_sql("ALTER TABLE notebooks ADD COLUMN share_token VARCHAR")
+
+    conn.exec_driver_sql(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_notebooks_share_token ON notebooks (share_token)"
+    )
 
 
 async def get_db() -> AsyncSession:

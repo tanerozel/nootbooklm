@@ -2,6 +2,9 @@ export interface Notebook {
   id: string;
   title: string;
   description: string | null;
+  summary?: string | null;
+  summary_updated_at?: string | null;
+  share_token?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -92,4 +95,23 @@ export interface AppSettings {
 export interface SettingsPatchResponse {
   settings: AppSettings;
   warnings: string[];
+}
+
+export interface Summary {
+  summary: string | null;
+  summary_updated_at: string | null;
+}
+
+export interface ShareInfo {
+  share_token: string | null;
+  share_url: string | null;
+}
+
+export interface SharedNotebook {
+  id: string;
+  title: string;
+  description: string | null;
+  summary: string | null;
+  summary_updated_at: string | null;
+  created_at: string;
 }

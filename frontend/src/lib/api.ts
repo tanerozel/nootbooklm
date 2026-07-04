@@ -1,5 +1,17 @@
 import axios from 'axios';
-import type { Notebook, Source, SourcePreview, ChatMessage, ChatResponse, Note, AppSettings, SettingsPatchResponse } from '@/types';
+import type {
+  AppSettings,
+  ChatMessage,
+  ChatResponse,
+  Note,
+  Notebook,
+  SettingsPatchResponse,
+  ShareInfo,
+  SharedNotebook,
+  Source,
+  SourcePreview,
+  Summary,
+} from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -73,3 +85,23 @@ export const getSettings = () =>
 
 export const patchSettings = (data: Partial<AppSettings>) =>
   api.patch<SettingsPatchResponse>('/settings', data).then((r) => r.data);
+
+
+export const getSummary = (notebookId: string) =>
+  api.get<Summary>(`/notebooks/${notebookId}/summary`).then((r) => r.data);
+
+export const generateSummary = (notebookId: string) =>
+  api.post<Summary>(`/notebooks/${notebookId}/summary`).then((r) => r.data);
+
+export const generateAudioBriefing = (notebookId: string) =>
+  api
+    .post(`/notebooks/${notebookId}/audio-briefing`, {}, { responseType: 'blob' })
+    .then((r) => r.data as Blob);
+
+export const createShareLink = (notebookId: string) =>
+  api.post<ShareInfo>(`/notebooks/${notebookId}/share`).then((r) => r.data);
+
+export const revokeShareLink = (notebookId: string) => api.delete(`/notebooks/${notebookId}/share`);
+
+export const getSharedNotebook = (token: string) =>
+  api.get<SharedNotebook>(`/shared/${token}`).then((r) => r.data);
