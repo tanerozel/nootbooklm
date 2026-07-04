@@ -40,10 +40,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - path: .env.example
-        required: true
-      - path: .env
-        required: false
+      - .env
     environment:
       - OPENSEARCH_HOST=opensearch
     volumes:
