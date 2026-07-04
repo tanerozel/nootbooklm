@@ -7,7 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.models import Base
 
-DB_PATH = os.environ.get("DB_PATH", "/app/uploads/nootbooklm.db")
+DEFAULT_UPLOAD_DIR = Path(
+    os.environ.get("UPLOAD_DIR", str(Path(__file__).resolve().parents[1] / "uploads"))
+)
+DB_PATH = os.environ.get("DB_PATH", str(DEFAULT_UPLOAD_DIR / "nootbooklm.db"))
 
 
 def _db_url() -> str:

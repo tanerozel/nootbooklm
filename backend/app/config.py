@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Literal
 
 from cryptography.fernet import Fernet
@@ -82,7 +83,7 @@ class Settings(BaseSettings):
     max_history_tokens: int = 2000   # tokens reserved for chat history
 
     # Storage
-    upload_dir: str = "/app/uploads"
+    upload_dir: str = str(Path(__file__).resolve().parents[1] / "uploads")
 
     @property
     def cors_origins(self) -> list[str]:
