@@ -11,7 +11,7 @@ import ShareModal from '@/components/ShareModal';
 import SourcePanel from '@/components/SourcePanel';
 import SourceViewer from '@/components/SourceViewer';
 import SummaryPanel from '@/components/SummaryPanel';
-import { getNotebook, getSource, listSources } from '@/lib/api';
+import { getNotebook, listSources } from '@/lib/api';
 import type { Citation, Notebook, Source } from '@/types';
 
 interface Props {
@@ -52,8 +52,12 @@ export default function NotebookPage({ params }: Props) {
       return;
     }
 
-    const updated = await Promise.all(processing.map((s) => getSource(id, s.id).catch(() => s)));
-    setSources((prev) => prev.map((s) => updated.find((u) => u.id === s.id) ?? s));
+    try {
+      const updated = await listSources(id);
+      setSources(updated);
+    } catch {
+      // Keep the current UI state and try again on the next poll.
+    }
   }, [id, sources]);
 
   useEffect(() => {
