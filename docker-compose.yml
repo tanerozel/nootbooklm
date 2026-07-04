@@ -43,6 +43,8 @@ services:
       - .env
     environment:
       - OPENSEARCH_HOST=opensearch
+      - UPLOAD_DIR=/app/uploads
+      - DB_PATH=/app/uploads/nootbooklm.db
     volumes:
       - ./backend:/app
       - uploads_data:/app/uploads

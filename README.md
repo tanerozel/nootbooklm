@@ -109,6 +109,8 @@ To use real LLM calls inside Codespaces, replace the placeholder API key in `.en
 | `CHUNK_OVERLAP` | `50` | Chunk overlap in characters |
 | `SECRET_KEY` | — | Backend JWT secret (change in production) |
 | `BACKEND_CORS_ORIGIN_REGEX` | — | Optional regex for additional dev origins such as Codespaces forwarded URLs |
+| `UPLOAD_DIR` | `<repo>/backend/uploads` | Directory for uploaded files and default SQLite location in local dev |
+| `DB_PATH` | `<UPLOAD_DIR>/nootbooklm.db` | Optional explicit SQLite database path override |
 
 ### Using HuggingFace embeddings (local, no API key needed)
 
