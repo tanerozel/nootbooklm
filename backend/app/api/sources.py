@@ -268,6 +268,35 @@ async def get_source_preview(
     )
 
 
+@router.post("/{source_id}/retry", response_model=SourceOut, status_code=status.HTTP_202_ACCEPTED)
+async def retry_source(
+    notebook_id: str,
+    source_id: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> SourceOut:
+    """Re-queue a failed source for ingestion."""
+    source = await db.get(Source, source_id)
+    if not source or source.notebook_id != notebook_id:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    if source.status != "error":
+        raise HTTPException(
+            status_code=400, detail="Only sources with 'error' status can be retried"
+        )
+
+    source.status = "pending"
+    source.ingestion_step = "queued"
+    source.progress_percent = 0
+    source.error_message = None
+    await db.commit()
+    await db.refresh(source)
+
+    background_tasks.add_task(_background_ingest, source_id=source_id)
+
+    return source
+
+
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_source(
     notebook_id: str,
