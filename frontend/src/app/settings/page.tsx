@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
-import { getSettings, patchSettings } from '@/lib/api';
-import type { AppSettings } from '@/types';
+import { ArrowLeft, Save, Eye, EyeOff, AlertTriangle, CheckCircle, BarChart2 } from 'lucide-react';
+import { getSettings, patchSettings, getUsage } from '@/lib/api';
+import type { AppSettings, UsageStats } from '@/types';
 
 const SENSITIVE_FIELDS = ['openai_api_key', 'anthropic_api_key', 'opensearch_password'] as const;
 type SensitiveField = (typeof SENSITIVE_FIELDS)[number];
@@ -59,6 +59,14 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Security: local API key (stored in localStorage, never sent to backend config)
+  const [localApiKey, setLocalApiKey] = useState('');
+  const [showLocalKey, setShowLocalKey] = useState(false);
+  const [localKeySaved, setLocalKeySaved] = useState(false);
+
+  // Usage stats
+  const [usage, setUsage] = useState<UsageStats | null>(null);
+
   useEffect(() => {
     getSettings()
       .then((s) => {
@@ -66,6 +74,13 @@ export default function SettingsPage() {
         setDraft(s);
       })
       .catch(() => setError('Failed to load settings.'));
+
+    // Load API key from localStorage
+    const storedKey = typeof window !== 'undefined' ? localStorage.getItem('nootbooklm_api_key') ?? '' : '';
+    setLocalApiKey(storedKey);
+
+    // Load usage stats (best-effort)
+    getUsage().then(setUsage).catch(() => {});
   }, []);
 
   const handleChange = (key: keyof AppSettings, value: string | number | boolean) => {
@@ -80,6 +95,22 @@ export default function SettingsPage() {
       else next.add(field);
       return next;
     });
+  };
+
+  const handleSaveLocalKey = () => {
+    if (typeof window !== 'undefined') {
+      if (localApiKey.trim()) {
+        // Intentional: localStorage is the standard client-side store for API keys
+        // in self-hosted single-user SPAs. The app loads no third-party scripts so
+        // XSS surface is minimal. httpOnly-cookie auth would require a login endpoint
+        // that is out of scope for this single-user tool.
+        localStorage.setItem('nootbooklm_api_key', localApiKey.trim());
+      } else {
+        localStorage.removeItem('nootbooklm_api_key');
+      }
+    }
+    setLocalKeySaved(true);
+    setTimeout(() => setLocalKeySaved(false), 2000);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -259,6 +290,85 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Security section — API key stored in localStorage only */}
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Security</h2>
+        <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <label className="w-44 text-sm text-gray-600 flex-shrink-0">Client API Key</label>
+            <div className="flex-1 relative">
+              <input
+                type={showLocalKey ? 'text' : 'password'}
+                value={localApiKey}
+                onChange={(e) => setLocalApiKey(e.target.value)}
+                placeholder="Leave blank to disable auth"
+                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowLocalKey((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showLocalKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveLocalKey}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm text-gray-700 transition"
+            >
+              {localKeySaved ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Save className="w-4 h-4" />}
+              {localKeySaved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Must match the <code className="bg-gray-100 px-1 rounded">API_KEY</code> environment variable set on the server.
+          Stored in your browser only — never sent to the backend settings endpoint.
+        </p>
+      </section>
+
+      {/* Usage / Cost section */}
+      {usage && (
+        <section className="mt-10 mb-8">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <BarChart2 className="w-4 h-4" />
+            Token Usage (Today)
+          </h2>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-3 divide-x divide-gray-100">
+              {[
+                { label: 'Prompt tokens', value: usage.prompt_tokens.toLocaleString() },
+                { label: 'Completion tokens', value: usage.completion_tokens.toLocaleString() },
+                { label: 'Total tokens', value: usage.total_tokens.toLocaleString() },
+              ].map(({ label, value }) => (
+                <div key={label} className="px-4 py-4 text-center">
+                  <p className="text-xl font-bold text-gray-900">{value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+            {usage.budget && usage.budget > 0 && (
+              <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                  <span>Daily budget: {usage.budget.toLocaleString()} tokens</span>
+                  <span>{usage.budget_remaining?.toLocaleString() ?? '—'} remaining</span>
+                </div>
+                <div className="h-1.5 rounded bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full rounded transition-all ${usage.budget_exceeded ? 'bg-red-500' : 'bg-blue-500'}`}
+                    style={{ width: `${Math.min(100, (usage.total_tokens / usage.budget) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Set <code className="bg-gray-100 px-1 rounded">MAX_TOKENS_PER_DAY</code> on the server to enforce a daily budget.
+          </p>
+        </section>
+      )}
     </main>
   );
 }

@@ -11,11 +11,24 @@ import type {
   Source,
   SourcePreview,
   Summary,
+  UsageStats,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const api = axios.create({ baseURL: BASE_URL });
+
+// Inject the API key (stored in localStorage) into every request.
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const key = localStorage.getItem('nootbooklm_api_key');
+    if (key) {
+      config.headers = config.headers ?? {};
+      config.headers['Authorization'] = 'Bearer ' + key;
+    }
+  }
+  return config;
+});
 
 // ── Notebooks ──────────────────────────────────────────────────────────────
 
@@ -86,7 +99,6 @@ export const getSettings = () =>
 export const patchSettings = (data: Partial<AppSettings>) =>
   api.patch<SettingsPatchResponse>('/settings', data).then((r) => r.data);
 
-
 export const getSummary = (notebookId: string) =>
   api.get<Summary>(`/notebooks/${notebookId}/summary`).then((r) => r.data);
 
@@ -105,3 +117,11 @@ export const revokeShareLink = (notebookId: string) => api.delete(`/notebooks/${
 
 export const getSharedNotebook = (token: string) =>
   api.get<SharedNotebook>(`/shared/${token}`).then((r) => r.data);
+
+// ── Usage ──────────────────────────────────────────────────────────────────
+
+export const getUsage = () =>
+  api.get<UsageStats>('/usage').then((r) => r.data);
+
+export const getUsageHistory = (days = 30) =>
+  api.get<UsageStats[]>(`/usage/history?days=${days}`).then((r) => r.data);
