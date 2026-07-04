@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Notebook, Source, ChatMessage, ChatResponse, Note, AppSettings, SettingsPatchResponse } from '@/types';
+import type { Notebook, Source, SourcePreview, ChatMessage, ChatResponse, Note, AppSettings, SettingsPatchResponse } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -40,6 +40,9 @@ export const listSources = (notebookId: string) =>
 
 export const getSource = (notebookId: string, sourceId: string) =>
   api.get<Source>(`/notebooks/${notebookId}/sources/${sourceId}`).then((r) => r.data);
+
+export const getSourcePreview = (notebookId: string, sourceId: string) =>
+  api.get<SourcePreview>(`/notebooks/${notebookId}/sources/${sourceId}/preview`).then((r) => r.data);
 
 export const deleteSource = (notebookId: string, sourceId: string) =>
   api.delete(`/notebooks/${notebookId}/sources/${sourceId}`);

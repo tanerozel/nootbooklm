@@ -210,7 +210,7 @@ npm run dev
 | 0 — PoC | ✅ | End-to-end flow: upload → index → hybrid search → cited answer |
 | 1 — Ingestion | 🚧 | Async ingestion is active; progress tracking + markdown support delivered, queue/events expansion in progress |
 | 2 — Hybrid & Rerank | ✅ | Cross-encoder reranker, OpenSearch search pipelines |
-| 3 — Conversation | 🔜 | Multi-turn context window management |
-| 4 — Advanced UI | 🔜 | Source viewer, drag-and-drop, keyboard shortcuts |
+| 3 — Conversation | ✅ | Multi-turn context window management |
+| 4 — Advanced UI | ✅ | Source viewer, drag-and-drop, keyboard shortcuts |
 | 5 — Advanced features | 🔜 | Auto-summary, audio briefing, multi-user sharing |
 | 6 — Hardening | 🔜 | Auth, rate limiting, observability, cost control |

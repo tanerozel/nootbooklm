@@ -21,6 +21,23 @@ export interface Source {
   updated_at: string;
 }
 
+export interface SourcePreviewSegment {
+  page_number: number | null;
+  text: string;
+  truncated: boolean;
+}
+
+export interface SourcePreview {
+  source_id: string;
+  title: string;
+  source_type: string;
+  url: string | null;
+  status: Source['status'];
+  chunk_count: number;
+  segments: SourcePreviewSegment[];
+  truncated: boolean;
+}
+
 export interface Citation {
   source_id: string;
   source_title: string;

@@ -48,6 +48,23 @@ class SourceOut(BaseModel):
     updated_at: datetime
 
 
+class SourcePreviewSegmentOut(BaseModel):
+    page_number: Optional[int]
+    text: str
+    truncated: bool
+
+
+class SourcePreviewOut(BaseModel):
+    source_id: str
+    title: str
+    source_type: str
+    url: Optional[str]
+    status: str
+    chunk_count: int
+    segments: list[SourcePreviewSegmentOut]
+    truncated: bool
+
+
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
