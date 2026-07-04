@@ -41,6 +41,7 @@ export default function NotePanel({ notebookId }: Props) {
         </span>
       </div>
       <textarea
+        id="note-editor"
         value={content}
         onChange={handleChange}
         placeholder="Take notes about your research here…"

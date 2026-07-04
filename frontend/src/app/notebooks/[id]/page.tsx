@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Keyboard, RefreshCw } from 'lucide-react';
 import { getNotebook, listSources, getSource } from '@/lib/api';
 import type { Notebook, Source, Citation } from '@/types';
 import SourcePanel from '@/components/SourcePanel';
 import ChatPanel from '@/components/ChatPanel';
 import NotePanel from '@/components/NotePanel';
 import CitationPreview from '@/components/CitationPreview';
+import SourceViewer from '@/components/SourceViewer';
 
 interface Props {
   params: { id: string };
@@ -26,7 +27,7 @@ export default function NotebookPage({ params }: Props) {
 
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [nb, srcs] = await Promise.all([getNotebook(id), listSources(id)]);
       setNotebook(nb);
@@ -36,10 +37,9 @@ export default function NotebookPage({ params }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
 
-  // Poll processing sources every 3s
-  const pollSources = async () => {
+  const pollSources = useCallback(async () => {
     const processing = sources.filter((s) => s.status === 'pending' || s.status === 'processing');
     if (processing.length === 0) return;
 
@@ -49,19 +49,78 @@ export default function NotebookPage({ params }: Props) {
     setSources((prev) =>
       prev.map((s) => updated.find((u) => u.id === s.id) ?? s)
     );
-  };
+  }, [id, sources]);
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [fetchData]);
 
   useEffect(() => {
+    clearInterval(pollingRef.current);
     pollingRef.current = setInterval(pollSources, 3000);
     return () => clearInterval(pollingRef.current);
-  }, [sources]);
+  }, [pollSources]);
+
+  useEffect(() => {
+    if (!selectedSource) return;
+    const updatedSource = sources.find((source) => source.id === selectedSource.id);
+    if (!updatedSource) {
+      setSelectedSource(null);
+      return;
+    }
+    if (updatedSource !== selectedSource) {
+      setSelectedSource(updatedSource);
+    }
+  }, [selectedSource, sources]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isEditable = Boolean(
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      );
+
+      if (event.key === 'Escape') {
+        setActiveCitation(null);
+        setSelectedSource(null);
+        return;
+      }
+
+      if (isEditable) return;
+
+      if (event.key === '/') {
+        event.preventDefault();
+        document.getElementById('chat-input')?.focus();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'u') {
+        event.preventDefault();
+        document.getElementById('source-upload-input')?.click();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        setActiveCitation(null);
+        setSelectedSource(null);
+        requestAnimationFrame(() => document.getElementById('note-editor')?.focus());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const rightPanelContent = activeCitation ? (
     <CitationPreview citation={activeCitation} onClose={() => setActiveCitation(null)} />
+  ) : selectedSource ? (
+    <SourceViewer
+      notebookId={id}
+      source={selectedSource}
+      onClose={() => setSelectedSource(null)}
+    />
   ) : (
     <NotePanel notebookId={id} />
   );
@@ -85,6 +144,13 @@ export default function NotebookPage({ params }: Props) {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <h1 className="font-semibold text-gray-900 truncate">{notebook?.title}</h1>
+        <div className="ml-auto hidden md:flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-500">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>/ chat</span>
+          <span>U upload</span>
+          <span>N notes</span>
+          <span>Esc close</span>
+        </div>
       </header>
 
       {/* Three-panel layout */}
@@ -95,7 +161,10 @@ export default function NotebookPage({ params }: Props) {
             notebookId={id}
             sources={sources}
             onSourcesChange={setSources}
-            onSourceSelect={setSelectedSource}
+            onSourceSelect={(source) => {
+              setActiveCitation(null);
+              setSelectedSource(source);
+            }}
             selectedSourceId={selectedSource?.id ?? null}
           />
         </aside>
@@ -105,7 +174,7 @@ export default function NotebookPage({ params }: Props) {
           <ChatPanel notebookId={id} onCitationClick={setActiveCitation} />
         </main>
 
-        {/* Right: Notes / Citation preview */}
+        {/* Right: Notes / Source viewer / Citation preview */}
         <aside className="w-72 bg-white border-l border-gray-200 flex flex-col shrink-0 overflow-hidden">
           {rightPanelContent}
         </aside>

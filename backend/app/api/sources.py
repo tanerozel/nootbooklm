@@ -22,9 +22,10 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from app.api.schemas import SourceOut
+from app.api.schemas import SourceOut, SourcePreviewOut
 from app.config import get_settings
 from app.database import get_db, DB_PATH
+from app.ingestion.loaders import load_document
 from app.ingestion.pipeline import ingest_source
 from app.models import Notebook, Source
 from app.retrieval.search import delete_source_chunks, get_opensearch_client
@@ -35,6 +36,8 @@ router = APIRouter(prefix="/notebooks/{notebook_id}/sources", tags=["sources"])
 
 # Thread pool for CPU-bound ingestion work
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+PREVIEW_SEGMENT_LIMIT = 8
+PREVIEW_SEGMENT_CHARS = 1200
 
 
 def _sync_ingest(source_id: str) -> None:
@@ -196,6 +199,73 @@ async def get_source(
     if not source or source.notebook_id != notebook_id:
         raise HTTPException(status_code=404, detail="Source not found")
     return source
+
+
+@router.get("/{source_id}/preview", response_model=SourcePreviewOut)
+async def get_source_preview(
+    notebook_id: str,
+    source_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> SourcePreviewOut:
+    source = await db.get(Source, source_id)
+    if not source or source.notebook_id != notebook_id:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    if source.status != "ready":
+        return SourcePreviewOut(
+            source_id=source.id,
+            title=source.title,
+            source_type=source.source_type,
+            url=source.url,
+            status=source.status,
+            chunk_count=source.chunk_count,
+            segments=[],
+            truncated=False,
+        )
+
+    if source.source_type != "url" and not source.file_path:
+        raise HTTPException(status_code=404, detail="Source file not found")
+
+    try:
+        document = load_document(
+            source_type=source.source_type,
+            file_path=source.file_path,
+            url=source.url,
+            title=source.title,
+        )
+    except Exception as exc:
+        logger.exception("Could not load preview for source %s", source_id)
+        raise HTTPException(status_code=502, detail="Could not load source preview") from exc
+
+    segments = []
+    preview_truncated = False
+    visible_pages = [page for page in document.pages if page["text"].strip()]
+
+    for page in visible_pages[:PREVIEW_SEGMENT_LIMIT]:
+        text = page["text"].strip()
+        segment_truncated = len(text) > PREVIEW_SEGMENT_CHARS
+        preview_truncated = preview_truncated or segment_truncated
+        segments.append(
+            {
+                "page_number": page["page_number"],
+                "text": text[:PREVIEW_SEGMENT_CHARS],
+                "truncated": segment_truncated,
+            }
+        )
+
+    if len(visible_pages) > PREVIEW_SEGMENT_LIMIT:
+        preview_truncated = True
+
+    return SourcePreviewOut(
+        source_id=source.id,
+        title=source.title,
+        source_type=source.source_type,
+        url=source.url,
+        status=source.status,
+        chunk_count=source.chunk_count,
+        segments=segments,
+        truncated=preview_truncated,
+    )
 
 
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)

@@ -201,6 +201,7 @@ export default function ChatPanel({ notebookId, onCitationClick }: Props) {
         className="px-4 py-3 border-t border-gray-200 flex gap-2"
       >
         <input
+          id="chat-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}

@@ -32,9 +32,9 @@ export default function SourcePanel({
   const [urlInput, setUrlInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelection = async (file?: File) => {
     if (!file) return;
     setUploading(true);
     try {
@@ -46,6 +46,10 @@ export default function SourcePanel({
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await handleFileSelection(e.target.files?.[0]);
   };
 
   const handleUrlAdd = async (e: React.FormEvent) => {
@@ -69,6 +73,12 @@ export default function SourcePanel({
     await deleteSource(notebookId, sourceId);
     onSourcesChange(sources.filter((s) => s.id !== sourceId));
     if (selectedSourceId === sourceId) onSourceSelect(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    await handleFileSelection(e.dataTransfer.files?.[0]);
   };
 
   return (
@@ -95,6 +105,7 @@ export default function SourcePanel({
         </div>
         <input
           ref={fileRef}
+          id="source-upload-input"
           type="file"
           accept=".pdf,.docx,.txt,.md,.markdown"
           className="hidden"
@@ -127,10 +138,34 @@ export default function SourcePanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div
+        className={clsx(
+          'flex-1 overflow-y-auto transition-colors',
+          dragActive && 'bg-blue-50'
+        )}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setDragActive(false);
+          }
+        }}
+        onDrop={handleDrop}
+      >
+        {dragActive && (
+          <div className="mx-4 mt-4 rounded-xl border border-dashed border-blue-400 bg-white px-4 py-3 text-sm text-blue-700">
+            Drop a file here to upload it.
+          </div>
+        )}
         {sources.length === 0 ? (
           <div className="text-center text-gray-400 text-sm py-8 px-4">
-            Upload a PDF, DOCX, TXT, MD or add a URL to get started.
+            Upload a PDF, DOCX, TXT, MD, drop a file here, or add a URL to get started.
           </div>
         ) : (
           <ul>
