@@ -15,7 +15,14 @@ SENSITIVE_KEYS: frozenset[str] = frozenset(
 
 # Keys that must never be overridden via the UI (stay ENV-only).
 ENV_ONLY_KEYS: frozenset[str] = frozenset(
-    {"secret_key", "backend_cors_origins", "opensearch_host", "opensearch_port", "upload_dir"}
+    {
+        "secret_key",
+        "backend_cors_origins",
+        "opensearch_host",
+        "opensearch_port",
+        "upload_dir",
+        "api_key",          # auth key must not be patchable via API
+    }
 )
 
 # Keys that affect embeddings — a change requires re-indexing sources.
@@ -55,6 +62,15 @@ class Settings(BaseSettings):
     # Backend
     secret_key: str = "change-me-in-production-at-least-32-chars"
     backend_cors_origins: str = "http://localhost:3000"
+
+    # Auth
+    api_key: str = ""  # empty = disabled (dev mode)
+
+    # Rate limiting
+    rate_limit_rpm: int = 60  # requests per minute per IP; 0 = disabled
+
+    # Cost control
+    max_tokens_per_day: int = 0  # 0 = unlimited
 
     # Chunking
     chunk_size: int = 400

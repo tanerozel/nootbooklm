@@ -111,3 +111,18 @@ class AppSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_now, onupdate=_now
     )
+
+
+class UsageRecord(Base):
+    """Daily token-usage aggregate — one row per calendar day (UTC)."""
+
+    __tablename__ = "usage_records"
+
+    date: Mapped[str] = mapped_column(String, primary_key=True)  # YYYY-MM-DD
+    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    total_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    request_count: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
+    )

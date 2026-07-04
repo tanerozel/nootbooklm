@@ -115,3 +115,14 @@ export interface SharedNotebook {
   summary_updated_at: string | null;
   created_at: string;
 }
+
+export interface UsageStats {
+  date: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  request_count: number;
+  budget?: number;
+  budget_remaining?: number | null;
+  budget_exceeded?: boolean;
+}

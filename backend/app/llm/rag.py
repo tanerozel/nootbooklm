@@ -5,10 +5,12 @@ import logging
 from typing import Any
 
 import tiktoken
+from fastapi import HTTPException
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from app.config import get_runtime_settings
 from app.llm.client import get_llm
+from app.llm.tracker import check_daily_budget, record_token_usage
 from app.retrieval.embeddings import get_embedder
 from app.retrieval.rerank import rerank_chunks
 from app.retrieval.search import get_opensearch_client, hybrid_search
@@ -159,9 +161,28 @@ async def answer_question(
 
     messages.append(HumanMessage(content=user_msg_text))
 
+    # Check daily token budget before calling the LLM.
+    try:
+        check_daily_budget()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=429, detail=str(exc))
+
     llm = get_llm()
     response = llm.invoke(messages)
     answer = response.content
+
+    # Record token usage — estimate prompt tokens via tiktoken, completion via API
+    # metadata when available, otherwise estimate from the response text.
+    prompt_tokens = fixed_tokens + sum(
+        _count_tokens(m.content, encoder) for m in messages[:-1]
+    )
+    # Prefer provider-supplied counts if the LLM exposes them.
+    usage_meta = getattr(response, "usage_metadata", None) or {}
+    completion_tokens = usage_meta.get(
+        "output_tokens",
+        _count_tokens(answer, encoder),
+    )
+    record_token_usage(prompt_tokens, completion_tokens)
 
     return {
         "answer": answer,
