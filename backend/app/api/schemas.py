@@ -120,6 +120,9 @@ class SettingsOut(BaseModel):
     # Chunking
     chunk_size: int
     chunk_overlap: int
+    # Context window management
+    max_context_tokens: int
+    max_history_tokens: int
 
 
 class SettingsPatch(BaseModel):
@@ -145,6 +148,9 @@ class SettingsPatch(BaseModel):
     # Chunking
     chunk_size: Optional[int] = None
     chunk_overlap: Optional[int] = None
+    # Context window management
+    max_context_tokens: Optional[int] = None
+    max_history_tokens: Optional[int] = None
 
 
 class SettingsPatchResponse(BaseModel):
