@@ -25,8 +25,32 @@ class NotebookOut(BaseModel):
     id: str
     title: str
     description: Optional[str]
+    summary: Optional[str] = None
+    summary_updated_at: Optional[datetime] = None
+    share_token: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+
+class SummaryOut(BaseModel):
+    summary: Optional[str]
+    summary_updated_at: Optional[datetime]
+
+
+class ShareOut(BaseModel):
+    share_token: Optional[str]
+    share_url: Optional[str]
+
+
+class SharedNotebookOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    title: str
+    description: Optional[str]
+    summary: Optional[str]
+    summary_updated_at: Optional[datetime]
+    created_at: datetime
 
 
 # ── Source ────────────────────────────────────────────────────────────────────

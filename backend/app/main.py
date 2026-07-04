@@ -6,8 +6,11 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import notebooks, sources, chat, notes
+from app.api import audio as audio_router
+from app.api import chat, notes, notebooks, sources
 from app.api import settings as settings_router
+from app.api import sharing as sharing_router
+from app.api import summary as summary_router
 from app.config import get_settings, load_db_overrides, SENSITIVE_KEYS, decrypt_value
 from app.database import init_db, AsyncSessionLocal
 from app.models import AppSetting
@@ -38,6 +41,9 @@ def create_app() -> FastAPI:
     app.include_router(sources.router)
     app.include_router(chat.router)
     app.include_router(notes.router)
+    app.include_router(summary_router.router)
+    app.include_router(audio_router.router)
+    app.include_router(sharing_router.router)
     app.include_router(settings_router.router)
 
     @app.on_event("startup")
