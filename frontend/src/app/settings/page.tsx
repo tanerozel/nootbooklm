@@ -100,6 +100,10 @@ export default function SettingsPage() {
   const handleSaveLocalKey = () => {
     if (typeof window !== 'undefined') {
       if (localApiKey.trim()) {
+        // Intentional: localStorage is the standard client-side store for API keys
+        // in self-hosted single-user SPAs. The app loads no third-party scripts so
+        // XSS surface is minimal. httpOnly-cookie auth would require a login endpoint
+        // that is out of scope for this single-user tool.
         localStorage.setItem('nootbooklm_api_key', localApiKey.trim());
       } else {
         localStorage.removeItem('nootbooklm_api_key');
