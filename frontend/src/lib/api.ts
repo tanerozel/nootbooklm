@@ -84,6 +84,9 @@ export const getSourcePreview = (notebookId: string, sourceId: string) =>
 export const deleteSource = (notebookId: string, sourceId: string) =>
   api.delete(`/notebooks/${notebookId}/sources/${sourceId}`);
 
+export const retrySource = (notebookId: string, sourceId: string) =>
+  api.post<Source>(`/notebooks/${notebookId}/sources/${sourceId}/retry`).then((r) => r.data);
+
 // ── Chat ───────────────────────────────────────────────────────────────────
 
 export const sendMessage = (notebookId: string, question: string) =>
