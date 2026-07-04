@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     # Backend
     secret_key: str = "change-me-in-production-at-least-32-chars"
     backend_cors_origins: str = "http://localhost:3000"
+    backend_cors_origin_regex: str = ""
 
     # Auth
     api_key: str = ""  # empty = disabled (dev mode)

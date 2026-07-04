@@ -1,0 +1,42 @@
+{
+  "name": "nootbooklm",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.yml"
+  ],
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/nootbooklm",
+  "runServices": [
+    "workspace",
+    "opensearch",
+    "opensearch-dashboards",
+    "backend",
+    "frontend"
+  ],
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [
+    3000,
+    8000,
+    9200,
+    5601
+  ],
+  "postCreateCommand": "bash -lc 'if [ ! -f .env ]; then cp .env.example .env; fi && cd frontend && npm install && cd /workspaces/nootbooklm/backend && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt'",
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "README.md",
+        ".env.example"
+      ]
+    },
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}

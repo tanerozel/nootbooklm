@@ -14,7 +14,19 @@ import type {
   UsageStats,
 } from '@/types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const deriveCodespacesApiUrl = () => {
+  if (typeof window === 'undefined') return null;
+
+  const { hostname, protocol } = window.location;
+  if (!hostname.endsWith('.app.github.dev')) return null;
+
+  const match = hostname.match(/^(.*)-3000(\..+)$/);
+  if (!match) return null;
+
+  return `${protocol}//${match[1]}-8000${match[2]}`;
+};
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || deriveCodespacesApiUrl() || 'http://localhost:8000';
 
 const api = axios.create({ baseURL: BASE_URL });
 

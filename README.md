@@ -59,6 +59,31 @@ Wait ~60 s for OpenSearch to become healthy, then open:
 
 ---
 
+## One-Click Development Environment
+
+You can open the repository with a ready-to-run development environment in either:
+
+- **GitHub Codespaces** → **Code** → **Codespaces** → **Create codespace**
+- **VS Code Dev Containers** → **Reopen in Container**
+
+The dev container:
+
+- starts OpenSearch, the backend, and the frontend with Docker Compose
+- creates a local backend virtualenv and installs frontend dependencies for editor tooling
+- falls back to `.env.example` on first boot, then copies it to `.env` if the file is missing
+
+After the container finishes booting, use the forwarded ports:
+
+| Service | URL |
+|---|---|
+| **Frontend** | Port 3000 |
+| **API docs** | Port 8000 `/docs` |
+| **OpenSearch Dashboards** | Port 5601 |
+
+To use real LLM calls inside Codespaces, replace the placeholder API key in `.env` or set it as a Codespaces secret before launching the environment.
+
+---
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -83,6 +108,7 @@ Wait ~60 s for OpenSearch to become healthy, then open:
 | `CHUNK_SIZE` | `400` | Target chunk size in characters |
 | `CHUNK_OVERLAP` | `50` | Chunk overlap in characters |
 | `SECRET_KEY` | — | Backend JWT secret (change in production) |
+| `BACKEND_CORS_ORIGIN_REGEX` | — | Optional regex for additional dev origins such as Codespaces forwarded URLs |
 
 ### Using HuggingFace embeddings (local, no API key needed)
 
@@ -129,6 +155,10 @@ Full interactive docs: http://localhost:8000/docs
 
 ```
 nootbooklm/
+├── .devcontainer/
+│   ├── devcontainer.json
+│   ├── docker-compose.yml
+│   └── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
 ├── backend/

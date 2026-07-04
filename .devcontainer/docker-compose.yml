@@ -1,0 +1,18 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    init: true
+    volumes:
+      - .:/workspaces/nootbooklm:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  backend:
+    environment:
+      - BACKEND_CORS_ORIGIN_REGEX=^https://.*\.app\.github\.dev$
+
+  frontend:
+    environment:
+      - NEXT_PUBLIC_API_URL=
